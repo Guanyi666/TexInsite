@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: texinsite-engine
+
+  # 文件的默认本地存储路径
+  texinsite:
+    upload:
+      dir: /app/data/uploads
+
+  # 数据库连接配置
+  datasource:
+    url: jdbc:postgresql://localhost:5432/texinsite_db
+    username: postgres
+    password: texinsite_secret
+    driver-class-name: org.postgresql.Driver
+
+
+  # JPA 自动更新生成表结构配置
+  jpa:
+    hibernate:
+      # 对表的控制，当表的结构发生变化时，应改为create重新运行
+      ddl-auto: update # 启动时根据实体类创建/更新表
+    show-sql: true     # 在控制台打印生成的SQL，方便调试
+
+  docker:
+    compose:
+      enabled: false
+
+
+#  ai:
+#    openai:
+#      api-key: ${OPENAI_API_KEY:sk-}
+#      base-url: https://api.openai.com # 如果使用国内中转站，请修改此地址
+#      chat:
+#        options:
+#          model: gpt-4o-mini # 或 gpt-4o
+#      embedding:
+#        options:
+#          model: text-embedding-3-small # 目前性价比最高的向量模型
+#    vectorstore:
+#      pgvector:
+#        index-type: HNSW
+#        distance-type: COSINE_DISTANCE
+#        dimensions: 1536 # text-embedding-3-small 的默认维度
+#        initialize-schema: true # 关键！让 Spring AI 启动时自动在数据库创建 vector_store 表
