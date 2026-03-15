@@ -10,6 +10,8 @@ import Share from './pages/Share';
 import ShareManager from './pages/ShareManager';
 import Preview from './pages/Preview';
 import SharedView from './pages/SharedView';
+import Chat from './pages/Chat';
+import MultiChat from './pages/MultiChat';
 
 export default function App() {
   return (
@@ -56,7 +58,24 @@ export default function App() {
               <Preview />
             </ProtectedRoute>
           }
-        />        <Route path="/shared/:token" element={<SharedView />} />        <Route path="*" element={<Navigate to="/" replace />} />
+        />        <Route path="/shared/:token" element={<SharedView />} />
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute>
+              <Chat />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/multichat"
+          element={
+            <ProtectedRoute>
+              <MultiChat />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
   );

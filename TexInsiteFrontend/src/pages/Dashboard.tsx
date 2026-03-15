@@ -30,7 +30,7 @@ function formatDateLabel(date: Date) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'shares' | 'trash'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'shares' | 'trash' | 'chat'>('overview');
   const [docs, setDocs] = useState<DocumentItem[]>([]);
   const [trashDocs, setTrashDocs] = useState<DocumentItem[]>([]);
   const [shareLinks, setShareLinks] = useState<ShareLinkItem[]>([]);
@@ -353,6 +353,32 @@ export default function Dashboard() {
     </div>
   );
 
+  const renderChat = () => (
+    <div className="stack">
+      <div className="card">
+        <h3>🤖 AI 智能问答</h3>
+        <p>基于您上传的文档内容，使用 AI 进行智能问答。支持单文档对话和多文档批量问答。</p>
+        <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
+          <Link to="/chat" className="button primary">
+            💬 单文档问答
+          </Link>
+          <Link to="/multichat" className="button">
+            📚 多文档问答
+          </Link>
+        </div>
+        <div style={{ marginTop: 16, padding: 12, background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: 8 }}>
+          <h4 style={{ margin: '0 0 8px 0', color: '#a855f7' }}>💡 使用提示</h4>
+          <ul style={{ margin: 0, paddingLeft: 20, color: 'rgba(240,246,252,0.8)', lineHeight: 1.6 }}>
+            <li>单文档问答：选择一个文档，进行针对性的深度问答</li>
+            <li>多文档问答：同时对多个文档提问，快速获取综合信息</li>
+            <li>AI 会基于文档的实际内容进行回答，确保信息的准确性</li>
+            <li>支持复杂问题，如总结、分析、比较等</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderTrash = () => (
     <div className="stack">
       {trashDocs.length === 0 ? (
@@ -485,6 +511,17 @@ export default function Dashboard() {
           >
             回收站
           </button>
+          <button
+            className="button"
+            style={
+              activeTab === 'chat'
+                ? { background: 'rgba(168, 85, 247, 0.25)', borderColor: 'rgba(168, 85, 247, 0.4)' }
+                : undefined
+            }
+            onClick={() => setActiveTab('chat')}
+          >
+            🤖 AI 问答
+          </button>
         </div>
       </div>
 
@@ -525,6 +562,8 @@ export default function Dashboard() {
         renderDocuments()
       ) : activeTab === 'shares' ? (
         renderShares()
+      ) : activeTab === 'chat' ? (
+        renderChat()
       ) : (
         renderTrash()
       )}

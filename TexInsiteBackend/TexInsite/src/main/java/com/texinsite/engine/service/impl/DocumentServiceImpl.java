@@ -73,8 +73,8 @@ public class DocumentServiceImpl {
         // 6. 核心动作：将文本切片并利用大模型生成 Embedding，存入 pgvector
         try {
             System.out.println("====== 开始对文档 [ID: " + savedDoc.getId() + "] 进行切片与向量化 ======");
-            // knowledgeIngestionService.ingestDocument(content, savedDoc.getId());
-            System.out.println("====== 向量化功能暂时禁用 ======");
+            knowledgeIngestionService.ingestDocument(content, savedDoc.getId());
+            System.out.println("====== 向量化完成 ======");
         } catch (Exception e) {
             System.err.println("向量化入库失败，请检查 API Key、网络连通性或 pgvector 状态: " + e.getMessage());
             // 根据业务需求，这里可以选择抛出异常让事务回滚，或者允许数据库保留文件记录但仅提示 AI 解析失败。
