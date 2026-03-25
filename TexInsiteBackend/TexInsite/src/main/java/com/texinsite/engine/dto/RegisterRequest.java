@@ -10,41 +10,39 @@ import jakarta.validation.constraints.Size;
  * @date 2026/3/11
  */
 public class RegisterRequest {
+
     @NotBlank(message = "用户名不能为空")
     private String username;
 
     @NotBlank(message = "密码不能为空")
-    @Size(min = 6, message = "密码长度至少6位")
+    @Size(min = 6, message = "密码长度至少为 6 位")
     private String password;
 
+    @NotBlank(message = "邮箱不能为空")
     @Email(message = "邮箱格式不正确")
     private String email;
 
-
-    // 手动get，set方法
-    public @Email(message = "邮箱格式不正确") String getEmail() {
-        return email;
-    }
-
-    public @NotBlank(message = "密码不能为空") String getPassword() {
-        return password;
-    }
-
-    public @NotBlank(message = "用户名不能为空") String getUsername() {
+    public String getUsername() {
         return username;
     }
 
-    public void setEmail(@Email(message = "邮箱格式不正确") String email) {
-        this.email = email;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
-    public void setPassword(@NotBlank(message = "密码不能为空") String password) {
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
         this.password = password;
     }
 
-    public void setUsername(@NotBlank(message = "用户名不能为空") String username) {
-        this.username = username;
+    public String getEmail() {
+        return email;
     }
-    //==========================================================
-}
 
+    public void setEmail(String email) {
+        this.email = email;
+    }
+}

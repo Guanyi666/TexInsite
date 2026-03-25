@@ -7,12 +7,12 @@ export default function Register() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    // If already logged in, redirect to dashboard.
     if (localStorage.getItem('texinsite_token')) {
       navigate('/');
     }
@@ -40,8 +40,20 @@ export default function Register() {
   const handleRegister = async () => {
     setError(null);
     setSuccess(null);
+
+    if (!username.trim() || !email.trim() || !password) {
+      const msg = '请完整填写用户名、邮箱和密码';
+      setError(msg);
+      showToast(msg, 'error');
+      return;
+    }
+
     try {
-      await api.post('/auth/register', { username, password });
+      await api.post('/auth/register', {
+        username: username.trim(),
+        email: email.trim(),
+        password,
+      });
       setSuccess('注册成功，请登录。');
       showToast('注册成功，请登录。', 'success');
       setTimeout(() => navigate('/login'), 1200);
@@ -56,6 +68,7 @@ export default function Register() {
     <div className="container" style={{ maxWidth: 420 }}>
       <div className="card">
         <h2>注册</h2>
+
         <div className="label">用户名</div>
         <input
           value={username}
@@ -63,6 +76,16 @@ export default function Register() {
           className="input"
           placeholder="请输入用户名"
         />
+
+        <div className="label">邮箱</div>
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="input"
+          type="email"
+          placeholder="请输入邮箱"
+        />
+
         <div className="label">密码</div>
         <input
           value={password}

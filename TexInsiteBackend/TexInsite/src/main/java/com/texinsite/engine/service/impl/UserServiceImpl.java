@@ -21,6 +21,7 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserRepository userRepository;
+
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
@@ -29,34 +30,41 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void register(RegisterRequest dto) {
-        // 1.查询用户是否存在
-        if(userRepository.findByUsername(dto.getUsername()).isPresent()){
+        String username = normalizeRequiredField(dto.getUsername(), "用户名不能为空");
+        String email = normalizeRequiredField(dto.getEmail(), "邮箱不能为空");
+
+        if (userRepository.findByUsername(username).isPresent()) {
             throw new RuntimeException("用户名已存在");
         }
-        // 2.创建新用户并加密密码
+
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new RuntimeException("邮箱已被注册");
+        }
+
         User user = new User();
-        user.setUsername(dto.getUsername());
-        user.setEmail(dto.getEmail());
+        user.setUsername(username);
+        user.setEmail(email);
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        // 3.保存到数据库
         userRepository.save(user);
     }
 
     @Override
     public LoginVO login(LoginRequest dto) {
-        // 1.查找用户
         User user = userRepository.findByUsername(dto.getUsername())
                 .orElseThrow(() -> new RuntimeException("用户名或密码错误"));
 
-        // 2.校验密码
-        if(!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
             throw new RuntimeException("用户名或密码错误");
         }
 
-        // 3.生成Token
         String token = jwtUtils.generateToken(user.getUsername());
-
-        // 4.返回VO
         return new LoginVO(token, user.getUsername());
+    }
+
+    private String normalizeRequiredField(String value, String message) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalArgumentException(message);
+        }
+        return value.trim();
     }
 }

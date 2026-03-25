@@ -12,20 +12,19 @@ import java.util.Map;
 
 /**
  * 文档知识库向量化服务
- * 将文档内容分块并向量化存储到向量数据库中
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class KnowledgeIngestionService {
 
+    static final int DEFAULT_CHUNK_SIZE = 1000;
+    static final int DEFAULT_OVERLAP = 200;
+    static final int SENTENCE_SEARCH_WINDOW = 200;
+    static final int VECTOR_STORE_BATCH_SIZE = 32;
+
     private final VectorStore vectorStore;
 
-    /**
-     * 将文档内容向量化并存储到向量数据库
-     * @param rawText 文档的原始文本内容
-     * @param docId 文档ID
-     */
     public void ingestDocument(String rawText, Long docId) {
         if (rawText == null || rawText.trim().isEmpty()) {
             log.warn("文档内容为空，跳过向量化 - 文档ID: {}", docId);
@@ -35,44 +34,46 @@ public class KnowledgeIngestionService {
         try {
             log.info("开始文档向量化 - 文档ID: {}, 文本长度: {}", docId, rawText.length());
 
-            // 1. 文本分块处理
-            List<String> chunks = splitTextIntoChunks(rawText, 1000, 200); // 每块1000字符，重叠200字符
+            List<String> chunks = splitTextIntoChunks(rawText, DEFAULT_CHUNK_SIZE, DEFAULT_OVERLAP);
+            int totalChunks = chunks.size();
 
-            // 2. 创建文档对象列表
-            List<Document> documents = new ArrayList<>();
-            for (int i = 0; i < chunks.size(); i++) {
-                Document document = new Document(
-                    chunks.get(i),
-                    Map.of(
-                        "document_id", String.valueOf(docId),
-                        "chunk_index", String.valueOf(i),
-                        "total_chunks", String.valueOf(chunks.size())
-                    )
-                );
-                documents.add(document);
+            for (int batchStart = 0; batchStart < totalChunks; batchStart += VECTOR_STORE_BATCH_SIZE) {
+                int batchEnd = Math.min(batchStart + VECTOR_STORE_BATCH_SIZE, totalChunks);
+                List<Document> documents = new ArrayList<>(batchEnd - batchStart);
+
+                for (int i = batchStart; i < batchEnd; i++) {
+                    documents.add(new Document(
+                            chunks.get(i),
+                            Map.of(
+                                    "document_id", String.valueOf(docId),
+                                    "chunk_index", String.valueOf(i),
+                                    "total_chunks", String.valueOf(totalChunks)
+                            )
+                    ));
+                }
+
+                vectorStore.add(documents);
             }
 
-            // 3. 批量存储到向量数据库
-            vectorStore.add(documents);
-
-            log.info("文档向量化完成 - 文档ID: {}, 分块数量: {}", docId, chunks.size());
-
+            log.info("文档向量化完成 - 文档ID: {}, 分块数量: {}", docId, totalChunks);
         } catch (Exception e) {
             log.error("文档向量化失败 - 文档ID: {}, 错误: {}", docId, e.getMessage(), e);
             throw new RuntimeException("文档向量化处理失败", e);
         }
     }
 
-    /**
-     * 文本分块方法
-     * @param text 原始文本
-     * @param chunkSize 每块大小
-     * @param overlap 重叠大小
-     * @return 分块后的文本列表
-     */
-    private List<String> splitTextIntoChunks(String text, int chunkSize, int overlap) {
-        List<String> chunks = new ArrayList<>();
+    List<String> splitTextIntoChunks(String text, int chunkSize, int overlap) {
+        if (text == null || text.isBlank()) {
+            return List.of();
+        }
+        if (chunkSize <= 0) {
+            throw new IllegalArgumentException("chunkSize must be greater than 0");
+        }
+        if (overlap < 0 || overlap >= chunkSize) {
+            throw new IllegalArgumentException("overlap must be between 0 and chunkSize - 1");
+        }
 
+        List<String> chunks = new ArrayList<>();
         if (text.length() <= chunkSize) {
             chunks.add(text);
             return chunks;
@@ -82,12 +83,11 @@ public class KnowledgeIngestionService {
         while (start < text.length()) {
             int end = Math.min(start + chunkSize, text.length());
 
-            // 尝试在句子边界或段落边界分割
             if (end < text.length()) {
-                // 查找最近的句子结束符
-                int lastSentenceEnd = findLastSentenceEnd(text, start, end);
-                if (lastSentenceEnd > start) {
-                    end = lastSentenceEnd;
+                int searchStart = Math.max(start, end - Math.min(SENTENCE_SEARCH_WINDOW, chunkSize / 2));
+                int boundary = findLastSentenceEnd(text, searchStart, end);
+                if (boundary > start) {
+                    end = boundary;
                 }
             }
 
@@ -96,31 +96,30 @@ public class KnowledgeIngestionService {
                 chunks.add(chunk);
             }
 
-            // 计算下一个块的起始位置（考虑重叠）
-            start = end - overlap;
-            if (start >= text.length()) {
+            if (end >= text.length()) {
                 break;
             }
+
+            start = Math.max(end - overlap, start + 1);
         }
 
         return chunks;
     }
 
-    /**
-     * 查找句子结束位置
-     */
     private int findLastSentenceEnd(String text, int start, int end) {
-        String[] sentenceEndings = {". ", "! ", "? ", "。\n", "！\n", "？\n", "\n\n"};
-
         for (int i = end - 1; i >= start; i--) {
-            for (String ending : sentenceEndings) {
-                if (i + ending.length() <= text.length() &&
-                    text.substring(i, i + ending.length()).equals(ending)) {
-                    return i + ending.length();
-                }
+            char current = text.charAt(i);
+
+            if (current == '.' || current == '!' || current == '?' ||
+                    current == '。' || current == '！' || current == '？') {
+                return i + 1;
+            }
+
+            if (current == '\n' && i > start && text.charAt(i - 1) == '\n') {
+                return i + 1;
             }
         }
 
-        return end; // 如果没找到句子边界，返回原始end
+        return end;
     }
 }
